@@ -1,4 +1,4 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
 
   const VERIFY_TOKEN = "hotel_token";
 
@@ -15,9 +15,43 @@ export default function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    console.log("Webhook recibido");
+
+    const body = req.body;
+
+    if (body.entry) {
+
+      const message = body.entry[0].changes[0].value.messages?.[0]?.text?.body;
+
+      if (message) {
+
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "gpt-4.1-mini",
+            messages: [
+              {
+                role: "system",
+                content: "Eres la recepcionista amable de un hotel llamado Hotel Alcampo."
+              },
+              {
+                role: "user",
+                content: message
+              }
+            ]
+          })
+        });
+
+        const data = await response.json();
+
+        console.log("Respuesta IA:", data);
+      }
+    }
+
     return res.status(200).send("EVENT_RECEIVED");
   }
 
-  return res.status(405).send("Method Not Allowed");
 }
