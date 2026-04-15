@@ -1,29 +1,23 @@
-import OpenAI from "openai";
+export default function handler(req, res) {
 
-export default async function handler(req, res) {
+  const VERIFY_TOKEN = "hotel_token";
 
-  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body;
+  if (req.method === "GET") {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
 
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-  });
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      return res.status(200).send(challenge);
+    } else {
+      return res.status(403).send("Forbidden");
+    }
+  }
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4.1-mini",
-    messages: [
-      {
-        role: "system",
-        content: "Eres recepcionista de un hotel y respondes clientes por WhatsApp de forma amable."
-      },
-      {
-        role: "user",
-        content: message
-      }
-    ]
-  });
+  if (req.method === "POST") {
+    console.log("Webhook recibido");
+    return res.status(200).send("EVENT_RECEIVED");
+  }
 
-  const reply = completion.choices[0].message.content;
-
-  res.status(200).json({ reply });
-
+  return res.status(405).send("Method Not Allowed");
 }
